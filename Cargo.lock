@@ -2523,7 +2523,6 @@ dependencies = [
 [[package]]
 name = "isomdl"
 version = "0.1.0"
-source = "git+https://github.com/spruceid/isomdl?rev=6084a83#6084a8355e7f194556f365f46a8c3772ad35d321"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -2544,7 +2543,7 @@ dependencies = [
  "hex-literal",
  "hkdf",
  "hmac",
- "isomdl-macros 0.1.0 (git+https://github.com/spruceid/isomdl?rev=6084a83)",
+ "isomdl-macros 0.1.0",
  "p256",
  "p384",
  "pem-rfc7468 0.7.0",
@@ -2605,7 +2604,6 @@ dependencies = [
 [[package]]
 name = "isomdl-macros"
 version = "0.1.0"
-source = "git+https://github.com/spruceid/isomdl?rev=6084a83#6084a8355e7f194556f365f46a8c3772ad35d321"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3275,7 +3273,7 @@ dependencies = [
  "futures",
  "futures-util",
  "hex",
- "isomdl 0.1.0 (git+https://github.com/spruceid/isomdl?rev=6084a83)",
+ "isomdl 0.1.0",
  "itertools",
  "josekit",
  "json-syntax",

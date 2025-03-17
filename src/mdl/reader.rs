@@ -14,7 +14,7 @@ use isomdl::{
     },
     presentation::{authentication::AuthenticationStatus as IsoMdlAuthenticationStatus, reader},
 };
-use uuid::Uuid;
+use uuid::{uuid, Uuid};
 
 #[derive(thiserror::Error, uniffi::Error, Debug)]
 pub enum MDLReaderSessionError {
@@ -31,12 +31,20 @@ impl std::fmt::Debug for MDLSessionManager {
     }
 }
 
+// Added by Warren Gallagher at AffinitiQuest
+#[derive(uniffi::Enum)]
+pub enum MDLSessionMode {
+    CentralClientMode,
+    PeripheralServerMode
+}
+
 #[derive(uniffi::Record)]
 pub struct MDLReaderSessionData {
     pub state: Arc<MDLSessionManager>,
     uuid: Uuid,
     pub request: Vec<u8>,
     ble_ident: Vec<u8>,
+    pub mode: MDLSessionMode, // Added by Warren Gallagher at AffinitiQuest
 }
 
 #[uniffi::export]
@@ -85,19 +93,66 @@ pub fn establish_session(
                 value: format!("unable to establish session: {e:?}"),
             },
         )?;
+        
     let manager2 = manager.clone();
-    let uuid =
-        manager2
-            .first_central_client_uuid()
-            .ok_or_else(|| MDLReaderSessionError::Generic {
-                value: "the device did not transmit a central client uuid".to_string(),
-            })?;
+
+    let uuid = manager2.first_peripheral_server_uuid();
+    println!("{:#?}", uuid);
+
+    // let qr_code = uri.to_string();
+    // let device_engagement_bytes = Tag24::<DeviceEngagement>::from_qr_code_uri(&qr_code)
+    //     .context("failed to construct QR code")?;
+        
+    // manager.session_transcript
+    //     .0
+    //     .as_ref()
+    //     .device_retrieval_methods
+    //     .as_ref()
+    //     .and_then(|ms| {
+    //         ms.as_ref()
+    //             .iter()
+    //             .filter_map(|m| match m {
+    //                 _ => Err(MDLReaderSessionError::Generic {
+    //                     value: opt.to_string(),
+    //                 });
+    //                 // DeviceRetrievalMethod::BLE(opt) => {
+    //                 //     opt.central_client_mode.as_ref().map(|cc| &cc.uuid)
+    //                 // }
+    //                 // _ => None,
+    //             })
+    //             .next()
+    //     })
+    
+    // Based on the BLE options provided in the QR code from the mdl (holder/wallet), it prefers to be:
+    //  * use BLE in Peripheral Server Mode OR
+    //  * use BLE in Central Client Mode
+    // if the mdl specifies both, then the Reader shall use Central Client Mode
+    // let manager2 = manager.clone();
+    // let uuid  = manager2.first_central_client_uuid();
+    // if uuid.is_none() {
+    //    let uuid = manager2.first_central_client_uuid();//.first_peripheral_server_uuid();
+    //    if uuid.is_none() {
+    //        return Err(MDLReaderSessionError::Generic {
+    //            value: "the device did not transmit a central client uuid".to_string(),
+    //        });
+    //    }
+    //    else {
+    //        return Ok(MDLReaderSessionData {
+    //            state: Arc::new(MDLSessionManager(manager)),
+    //            request,
+    //            ble_ident: ble_ident.to_vec(),
+    //            uuid: *uuid.unwrap(),
+    //            mode: MDLSessionMode::PeripheralServerMode, // mdl (wallet/holder) wants central client mode, so the Reader should use peripheral server mode
+    //        });
+    //    }
+    // }
 
     Ok(MDLReaderSessionData {
         state: Arc::new(MDLSessionManager(manager)),
         request,
         ble_ident: ble_ident.to_vec(),
-        uuid: *uuid,
+        uuid: *uuid.unwrap(),//uuid!("00006e50-0000-1000-8000-00805f9b34fb"),//Uuid::new_v4(),
+        mode: MDLSessionMode::CentralClientMode, // mdl (wallet/holder) wants peripheral server mode, so the Reader should use central client mode
     })
 }
 
@@ -188,6 +243,7 @@ pub fn handle_response(
 ) -> Result<MDLReaderResponseData, MDLReaderResponseError> {
     let mut state = state.0.clone();
     let validated_response = state.handle_response(&response);
+    println!("{:#?}", validated_response);
     let errors = if !validated_response.errors.is_empty() {
         Some(
             serde_json::to_string(&validated_response.errors).map_err(|e| {
@@ -199,6 +255,7 @@ pub fn handle_response(
     } else {
         None
     };
+    println!("{:#?}", errors);
     let verified_response: Result<_, _> = validated_response
         .response
         .into_iter()

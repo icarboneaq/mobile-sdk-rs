@@ -31,7 +31,7 @@ pub fn build_response(
     mdoc_generated_nonce: String,
 ) -> Result<AuthorizationResponse> {
     let descriptor_map = DescriptorMap {
-        id: "org.iso.18013.5.1.mDL".to_string(),
+        id: "int.icao.epl.1".to_string(),
         format: MsoMDoc,
         path: JsonPath::default(),
         path_nested: None,
